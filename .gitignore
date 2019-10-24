@@ -1,0 +1,42 @@
+# Build and Release Folders
+bin/
+bin-debug/
+bin-release/
+[Oo]bj/ # FlashDevelop obj
+[Bb]in/ # FlashDevelop bin
+
+# Other files and folders
+.settings/
+
+# Executables
+*.swf
+*.air
+*.ipa
+*.apk
+*.jpg
+*.png
+*.mat
+*.mp4
+*.avi
+*.pdf
+*.DS_Store
+*.~
+
+# Folders with no change
+Action\ Recognition/
+GroundTruth/
+Labeling\ Tool/
+PoseEstimation/
+Visualization/data/
+
+# data files
+*.csv
+*.pkl
+*.mat
+
+
+
+
+# Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
+# should NOT be excluded as they contain compiler settings and other important
+# information for Eclipse / Flash Builder.

@@ -1,8 +1,11 @@
+import sys
+sys.path.insert(0, './model/losses')
+sys.path.insert(0, './model/net')
 import torch
 import torch.nn as nn
 import numpy as np
-from .losses.flow_loss import flow_loss
-from .net.tvnet import TVNet
+from flow_loss import flow_loss
+from tvnet import TVNet
 from torch.autograd import Variable
 
 class model(nn.Module):

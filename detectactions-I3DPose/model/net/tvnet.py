@@ -1,11 +1,12 @@
 import numpy as np
+import sys
 import torch 
 import torch.nn as nn
 from torch.autograd import Variable
 import torch.nn.functional as F
-
-from model.net.Conv2d_tensorflow import Conv2d
-from model.net.spatial_transformer import spatial_transformer as st
+sys.path.insert(0, './model/net')
+from Conv2d_tensorflow import Conv2d
+from spatial_transformer import spatial_transformer as st
 from utils import *
 
 GRAD_IS_ZERO = 1e-12

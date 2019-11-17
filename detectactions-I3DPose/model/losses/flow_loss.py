@@ -1,9 +1,11 @@
+import sys
 import torch 
 import torch.nn as nn
 from torch.autograd import Variable
 import numpy as np
 import torch.nn.functional as F
-from model.net.Conv2d_tensorflow import Conv2d
+sys.path.insert(0, './net')
+from Conv2d_tensorflow import Conv2d
 
 from utils import *
 

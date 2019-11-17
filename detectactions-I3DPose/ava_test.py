@@ -13,11 +13,18 @@ import csv
 from AVA_dataloader import ava_dataset
 import subprocess
 
+# Random Seed
+torch.manual_seed(0)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+np.random.seed(0)
+random.seed(0)
+
 mode = "trainval"
 rootDir = '/storage/truppr/AVA/ava-dataset-tool/'
 videoDir = rootDir + "video/" + mode
 frameDir = rootDir + "video/samples/" + mode
-jsonDir = rootDir + "json_files/"
+jsonDir = rootDir + "streams/"
 flowDir = rootDir + "flows/"
 # ava_training_set = "ava_dataset_files/ava_train_v2.1.csv"
 ava_training_set = "ava_dataset_files/ava_train_truppr_v9.9.csv"
@@ -36,8 +43,15 @@ of = loadTVNet(of, init_file)
 of = of.cpu()
 '''
 
+error = 0
 for tube in data:
-    pass
+    if tube == 'ERR':
+        print("Skipping tube because of length... (too short)")
+        error = error + 1
+        continue
+    elif tube == "EXCEPT":
+        pass
+    
     # print(tube)
     # print(prapre(tube[0]+".mkv", frameDir, jsonDir, 901, 903))
     # input()

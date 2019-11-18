@@ -3,6 +3,7 @@ import torch
 import torchvision.transforms as transforms
 import numpy as np
 from PIL import Image
+
 import skimage
 import operator
 import os
@@ -23,6 +24,22 @@ import random
 import sys
 import argparse
 from tvnet1130_train_options import arguments
+
+def visualizeFlow(f):
+    flow = np.zeros((224, 224, 2))
+    flow[:, :, 0] = f[0,:,:]# .cpu().numpy()
+    flow[:, :, 1] = f[1,:,:]# .cpu().numpy()
+    hsv = np.zeros((224, 224, 3), dtype=np.uint8)
+
+    hsv[..., 1] = 255
+    mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+    hsv[..., 0] = ang * 180 / np.pi / 2
+    hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
+
+    bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+    rgb = bgr[...,::-1] # comment out when saving with cv2.imwrite
+
+    return rgb
 
 
 def frame_to_tensor(frame):
@@ -344,7 +361,7 @@ class ava_dataset(data.Dataset):
         # for item in sorted(keys):
         # print("some keys for ya:", sorted(joints.keys()))
         bb = []
-        ehpi = np.zeros((64, 17, 3))
+        ehpi = np.zeros((17, 64, 3))
         for item in sorted(joints.keys()):
             # print(joints[item])
 
@@ -406,9 +423,9 @@ class ava_dataset(data.Dataset):
             # print(len(keypoints))
             k = 0
             for key in keypoints:
-                ehpi[rgb_index, k, 0] = 0
-                ehpi[rgb_index, k, 1] = (key[0] - xmin) / (xmax - xmin)
-                ehpi[rgb_index, k, 2] = (key[1] - ymin) / (ymax - ymin)
+                ehpi[k, rgb_index, 0] = ((key[0] - xmin) / (xmax - xmin)) * 255
+                ehpi[k, rgb_index, 1] = ((key[1] - ymin) / (ymax - ymin)) * 255
+                ehpi[k, rgb_index, 2] = 0
                 k = k + 1
 
             # print(item)
@@ -451,7 +468,7 @@ class ava_dataset(data.Dataset):
                     # print("work...")
                     rgb_stream[0, :, rgb_index + 1, :, :] = torch.from_numpy(i)
                     scene_stream[0, :, rgb_index + 1, :, :] = torch.from_numpy(original_image)
-                    ehpi[rgb_index + 1, :, :] = ehpi[rgb_index, :, :]
+                    ehpi[:, rgb_index + 1, :] = ehpi[:, rgb_index, :]
                     rgb_index = rgb_index + 1
                 except IndexError:
                     print("overpadded... continuing...")
@@ -471,7 +488,7 @@ class ava_dataset(data.Dataset):
                 # print("peep", i)
                 rgb_stream[0, :, i, :, :] = rgb_stream[0, :, rgb_index, :, :]
                 scene_stream[0, :, i, :, :] = scene_stream[0, :, rgb_index, :, :]
-                ehpi[i, :, :] = ehpi[rgb_index, :, :]
+                ehpi[:, i, :] = ehpi[:, rgb_index, :]
 
         # print("return")
         return rgb_stream, scene_stream, ehpi, bb
@@ -504,6 +521,10 @@ class ava_dataset(data.Dataset):
             data = skimage.transform.resize(data.cpu().numpy(), (1,1, 224, 224))
             flow_frame[index, 1,:,:] = torch.from_numpy(data)
 
+            im = visualizeFlow(flow_frame[index, :,:,:])
+            print(im.shape)
+            imsave(path + str(index).zfill(7) + ".jpg", im)
+
         np.save(path + "flows.npy", flow_frame.numpy())
 
         return flow_frame
@@ -514,7 +535,7 @@ class ava_dataset(data.Dataset):
 
 
     def __getitem__(self, index):
-        tube = {'rgb' : torch.zeros((1, 3, 64, 224, 224)), 'of': torch.zeros((1, 2, 64, 224, 224)), 'joints' : np.zeros((64,17,3))}
+        tube = {'rgb' : torch.zeros((1, 3, 64, 224, 224)), 'of': torch.zeros((1, 2, 64, 224, 224)), 'joints' : np.zeros((17,64,3))}
 
         # Step 1 - iterate over training list
         with open(self.folderList, 'r') as file:
@@ -529,15 +550,27 @@ class ava_dataset(data.Dataset):
             # Step 3 - Extract Tube & Augment if necessary
             res = self.extractTube(path, sample, h, w, joint_info)
             if res == "ERR":
-                return res
+                return "ERR"
 
             tube["rgb"], tube["scene"], tube["joints"], bb = res[0], res[1], res[2], res[3]
 
 
             # Step 4 - Extract Flow Tube
             tube["of"] = self.extractFlow(path, tube["scene"], h,  w, bb)
-
+            # print(tube["joints"].shape)
+            # print(tube["joints"])
             np.save(path + "/joint/ehpi.npy", tube["joints"])
+            im = Image.fromarray(tube["joints"], "RGB")
+            im.save(path + "/joint/ehpi.jpg")
+            # imsave(path + "/joint/ehpi.jpg", im)
+            
+            # Visualize Tubes
+            for frame in range(0, tube["scene"].shape[2]):
+                im = Image.fromarray(tube["scene"][0,:,frame,:,:].permute(2, 1, 0).numpy(), "RGB")
+                im.save(path + "/scene/test-"+ str(frame).zfill(7) + ".jpg")
+
+                im = Image.fromarray(tube["rgb"][0,:,frame,:,:].permute(2, 1, 0).numpy(), "RGB")
+                im.save(path + "/rgb/test-"+ str(frame).zfill(7) + ".jpg")
 
             # Step 5 - Extract EHPI
             # func call

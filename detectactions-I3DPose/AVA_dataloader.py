@@ -47,16 +47,7 @@ def frame_to_tensor(frame):
 	image1 = Image.open(frame)
 	image1 = tf1(image1)
 	image1 = ToTensor()(image1)
-
-	# image1 = image1.double()
-	# data = np.transpose(image1.numpy(), (1, 2, 0)) # put height and width in front
-
-	# data = skimage.transform.resize(data, (240, 320))
-
-	
-	# print("local func image1: ", image1.shape)
-	# image1 = torch.from_numpy(np.transpose(data, (2, 0, 1) ) ) # move back 
-	# frames[:,i,:] = image1 # .view(3, 480 * 640)    
+  
 	return image1
 
 
@@ -97,8 +88,6 @@ class ava_dataset(data.Dataset):
         self.frameDir = frameDir;
         self.jsonDir = jsonDir;
         self.flowDir = flowDir;
-        # self.numpixels = 320 * 240 # 640 * 480 # 1920*1080
-        # self.videoFrameProg = 1;
 
     # function to find the resolution of the input video file
     # (thank you): https://gist.github.com/oldo/dc7ee7f28851922cca09
@@ -119,7 +108,6 @@ class ava_dataset(data.Dataset):
         height = ffprobeOutput['streams'][0]['height']
         width = ffprobeOutput['streams'][0]['width']
         
-        # print(height, width)
         return height, width
 
     def within(self, keypoints, tup):
@@ -131,9 +119,6 @@ class ava_dataset(data.Dataset):
                 boolean = True;
                 score = score + 1
 
-        # print(keypoints)
-        # print(tup)
-
         return boolean, score
 
     # (altered but thank you): https://github.com/leaderj1001/Action-Localization/tree/master/video_crawler 
@@ -143,8 +128,6 @@ class ava_dataset(data.Dataset):
         start_time = int(sample[1])
         start_time = int(start_time) - 1
         end_time = int(start_time) + 3
-        # print(sample)
-        # print("Searching ", video_path, "for", video_name)
         
 
         onlyfiles = [f for f in listdir(video_path) if isfile(join(video_path, f))]
@@ -165,7 +148,6 @@ class ava_dataset(data.Dataset):
         else:
             command = ['ffmpeg','-i','"%s"' % origin_video_filename, '-ss', str(start_time), '-t', str(end_time - start_time), '-c:v', 'libx264', '-c:a', 'ac3','-threads', '1','-loglevel', 'panic','"{}"'.format(cropped_video_filename)]
             command = ' '.join(command)
-            # print(command)
 
             try:
                 print("Processing video: {}".format(video_name))
@@ -173,8 +155,6 @@ class ava_dataset(data.Dataset):
             except subprocess.CalledProcessError as err:
                 print('status :: ', status, ', error print :: ', err.output.decode('euc-kr'))
                 return status, err.output
-
-            # if os.path.exists(cropped_video_filename)
             
             os.mkdir(cropped_video_filename.split(".")[0])
             os.mkdir(cropped_video_filename.split(".")[0] + "/scene/")
@@ -206,24 +186,14 @@ class ava_dataset(data.Dataset):
             with open(cropped_video_filename.split(".")[0] + "/joint/" + 'alphapose-results.json') as json_file:
                 data = json.load(json_file)
             
-            # print("extracting data...")
             i = 0;
             new_data = {}
             for entry in data:
                 try:
-                    # print("try")
                     new_data[str(data[i]["category_id"])]
                 except KeyError:
-                    # print("caught")
                     new_data[str(data[i]["category_id"])] = {}
-                '''
-                try:
-                    print("try")
-                    new_data[str(data[i]["category_id"])][data[i]["image_id"]]
-                except KeyError:
-                    print("caught")
-                    new_data[str(data[i]["category_id"])][data[i]["image_id"]] 
-                '''
+
                 f = str(int(data[i]["image_id"].split(".")[0]) + 1).zfill(7) + "." + str(data[i]["image_id"].split(".")[1])
                 new_data[str(data[i]["category_id"])][f] = []
                 for eh in range(0, len(data[i]["keypoints"]), 3):
@@ -240,10 +210,8 @@ class ava_dataset(data.Dataset):
                     res, num = self.within(new_data[person][frame], (int(float(sample[3]) * height), int(float(sample[5]) * height), int(float(sample[2]) * width), int(float(sample[4]) * width)))
                     if res:
                         try:
-                            # print("try")
                             friend_score[str(person)]
                         except KeyError:
-                            # print("caught")
                             friend_score[str(person)] = 0
                         friend = person
                         friend_score[person] = friend_score[person] + num
@@ -251,55 +219,18 @@ class ava_dataset(data.Dataset):
             for peep in new_data:
                 print(peep)
 
-            #input()
-
             if friend == -1:
-                pass # print("Uh oh...")
+                pass
             else:
-                # print("is this new data?")
-                # print("person ", str(max(friend_score.iteritems(), key=operator.itemgetter(1))[0]))
                 peep = str(max(friend_score.iteritems(), key=operator.itemgetter(1))[0])
                 new_data = new_data[peep]
 
-            # print(new_data)
-
-            # for peep in new_data:
-             #    print(peep)
-
             with open(cropped_video_filename.split(".")[0] + "/joint/" + 'results.json', 'w') as fp:
                 json.dump(new_data, fp)
-            # input()
-        '''
-        rgb_stream = torch.zeros(1, 3, 90, 224, 224) # torch.zeros(1,3,64,224,224)
-        onlyfiles = [f for f in listdir(cropped_video_filename.split(".")[0] + "/scene/") if isfile(join(cropped_video_filename.split(".")[0] + "/scene/", f))]
-        index = 0;
-        for f in sorted(onlyfiles):
-            i = imread(join(cropped_video_filename.split(".")[0] + "/scene/", f))
 
-            # Visualize bounding boxes...
-            #i = cv2.rectangle(i, (int(float(sample[2]) * width), int(float(sample[3]) * height)), (int(float(sample[4]) * width), int(float(sample[5]) * height)), (255, 255, 0), 2)
-            #if int(f.split(".")[0]) > 30 and int(f.split(".")[0]) < 60:
-            #    i = cv2.putText(i, "Person " + sample[7], (int(float(sample[2]) * width) + 10, int(float(sample[3]) * height) + 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
-            #    i = cv2.putText(i, "Action " + sample[6], (int(float(sample[2]) * width) + 10, int(float(sample[3]) * height) + 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
-            
-
-            # Save RGB Stream Input
-
-            i = i[int(float(sample[3]) * height):int(float(sample[5]) * height),int(float(sample[2]) * width):int(float(sample[4]) * width),:]
-            i = skimage.transform.resize(i, (224,224, 3))
-            imsave(join(cropped_video_filename.split(".")[0] + "/rgb/", f), i)
-            i = np.transpose(i, (2, 0, 1))
-
-            rgb_stream[0,:,index,:,:] = torch.from_numpy(i)
-            index -= -1;
-
-        '''
-        # return rgb_stream
-        # print(cropped_video_filename.split(".")[0] + "/joint/" + 'results.json')
         with open(cropped_video_filename.split(".")[0] + "/joint/" + 'results.json', 'r') as json_file:
             new_data = json.load(json_file)
 
-        # print(cropped_video_filename.split(".")[0], new_data, height, width)
         return cropped_video_filename.split(".")[0], new_data, height, width
 
     def viableActionTube(self, imgs):
@@ -307,9 +238,6 @@ class ava_dataset(data.Dataset):
         count = 0
         broken = 0
         chunks = []
-
-        # print(imgs)
-        # input()
 
         for im in imgs[1:]:
             if int(im.replace(".jpg",'')) - previous <= 5:
@@ -358,20 +286,16 @@ class ava_dataset(data.Dataset):
             dublicate = True
 
         rgb_index = 0
-        # for item in sorted(keys):
-        # print("some keys for ya:", sorted(joints.keys()))
         bb = []
         ehpi = np.zeros((17, 64, 3))
         for item in sorted(joints.keys()):
-            # print(joints[item])
-
             x_arr = []
             y_arr = []
             xmin = 0
             xmax = 0
             ymin = 0
             ymax = 0
-            # print(item)
+
             # truncate beginning if too long
             if item in delete_keys:
                 del joints[item]
@@ -385,30 +309,11 @@ class ava_dataset(data.Dataset):
                 y_arr.append(key[1])
             
             label = "using joints for BB"
-            # print("using joints for BB!!!")
             buffer = 75
             xmin = int(min(x_arr)) - buffer 
             xmax = int(max(x_arr)) + buffer 
             ymin = int(min(y_arr)) - buffer
             ymax = int(max(y_arr)) + buffer
-            '''
-            if score / len(x_arr) > threshold:
-                label = "using joints for BB"
-                # print("using joints for BB!!!")
-                buffer = 10
-                xmin = int(min(x_arr)) - buffer 
-                xmax = int(max(x_arr)) + buffer 
-                ymin = int(min(y_arr)) - buffer
-                ymax = int(max(y_arr)) + buffer
-            else:
-                label = "using GT for BB"
-                # print("Using GT for BB!!!")
-                buffer = 10
-                xmin = int(float(sample[2]) * width) - buffer 
-                xmax = int(float(sample[4]) * width) + buffer 
-                ymin = int(float(sample[3]) * height) - buffer
-                ymax = int(float(sample[5]) * height) + buffer
-            '''
 
             if xmin < 0:
                 xmin = 0
@@ -420,7 +325,6 @@ class ava_dataset(data.Dataset):
                 ymax = height
 
             # ENCODE HUMAN POSE IMAGE
-            # print(len(keypoints))
             k = 0
             for key in keypoints:
                 ehpi[k, rgb_index, 0] = ((key[0] - xmin) / (xmax - xmin)) * 255
@@ -428,16 +332,9 @@ class ava_dataset(data.Dataset):
                 ehpi[k, rgb_index, 2] = 0
                 k = k + 1
 
-            # print(item)
-            # print(join(path + "/scene/", str(int(item.split(".")[0])).zfill(7)+ "." + item.split(".")[1]))
             i = imread(join(path + "/scene/", str(int(item.split(".")[0])).zfill(7) + "." + item.split(".")[1]))
-            # print(i.shape)
 
             # Visualize bounding boxes in scene...
-            # print(int(float(sample[2]) * width), int(float(sample[3]) * height), int(float(sample[4]) * width), int(float(sample[5]) * height))
-            # scene = cv2.rectangle(i, (int(float(sample[2]) * width), int(float(sample[3]) * height)), (int(float(sample[4]) * width), int(float(sample[5]) * height)), (255, 255, 0), 2)
-            # scene = cv2.putText(i, "Person " + sample[7], (int(float(sample[2]) * width) + 10, int(float(sample[3]) * height) + 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
-            # scene = cv2.putText(i, "Action " + sample[6], (int(float(sample[2]) * width) + 10, int(float(sample[3]) * height) + 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
             scene = cv2.rectangle(i, (xmin, ymin), (xmax, ymax), (255, 255, 0), 2)
             scene = cv2.putText(i, "Person " + sample[7], (xmin + 10, ymin + 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
             scene = cv2.putText(i, "Action " + sample[6], (xmin + 10, ymin + 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
@@ -445,27 +342,18 @@ class ava_dataset(data.Dataset):
 
             imsave(join(path + "/scene/", item), scene)
             bb.append(((xmin, ymin, xmax, ymax)))
-
-            # Visualize rgb stream...
-            # print(xmin,xmax,ymin,ymax)
-            # print(i.shape)
             
             original_image = np.transpose(i, (2, 0, 1)) # i;
             i = i[ymin:ymax,xmin:xmax,:]
             i = skimage.transform.resize(i, (224,224, 3))
-            # print("hey")
-            # print(join(path + "/rgb/", item))
-            # print(i.shape)
             imsave(join(path + "/rgb/", item), i)
-            # print("bby", rgb_index)
+
             i = np.transpose(i, (2, 0, 1))
             rgb_stream[0, :, rgb_index, :, :] = torch.from_numpy(i)
             scene_stream[0, :, rgb_index, :, :] = torch.from_numpy(original_image)
             
-            # print("yooo")
             if dublicate and random.uniform(0, 1) < p:
                 try:
-                    # print("work...")
                     rgb_stream[0, :, rgb_index + 1, :, :] = torch.from_numpy(i)
                     scene_stream[0, :, rgb_index + 1, :, :] = torch.from_numpy(original_image)
                     ehpi[:, rgb_index + 1, :] = ehpi[:, rgb_index, :]
@@ -479,18 +367,13 @@ class ava_dataset(data.Dataset):
             rgb_index = rgb_index + 1
             if rgb_index > 63:
                 break
-        # print("i dont understand")
-        # copy last frame if too short
 
         if rgb_index < 63:
-            # print(rgb_index)
             for i in range(rgb_index + 1, 63):
-                # print("peep", i)
                 rgb_stream[0, :, i, :, :] = rgb_stream[0, :, rgb_index, :, :]
                 scene_stream[0, :, i, :, :] = scene_stream[0, :, rgb_index, :, :]
                 ehpi[:, i, :] = ehpi[:, rgb_index, :]
 
-        # print("return")
         return rgb_stream, scene_stream, ehpi, bb
 
     def extractFlow(self, path, tube, h, w, bb):
@@ -498,21 +381,12 @@ class ava_dataset(data.Dataset):
         path = path + "/flows/"
         os.mkdir(path)
         for index in range(1, 64):
-            # x1 = frame_to_tensor(image_path+previousIm, hf).type(torch.FloatTensor) # .cuda();
-            # x2 = frame_to_tensor(image_path+fr).type(torch.FloatTensor) # .cuda();
-            # image = x2
-            
             data = skimage.transform.resize(tube[0,:,index - 1, :, :].cpu().numpy(), (3, 240, 320))
-            # data = np.transpose(data, (1, 2, 0))
             x1 = torch.from_numpy(data)
-            # print("x1:", x1.shape)
             data = skimage.transform.resize(tube[0,:,index, :, :].cpu().numpy(), (3, 240, 320))
-            # data = np.transpose(data, (1, 2, 0))
             x2 = torch.from_numpy(data)
-            # print("x2:", x2.shape)
             u1, u2 = of(x2.unsqueeze(0), x1.unsqueeze(0), need_result=True)
 
-            # print("u1:", u1.shape)
             data = u1.detach()[0, 0, bb[index][1]:bb[index][3], bb[index][0]:bb[index][2]]
             data = skimage.transform.resize(data.cpu().numpy(), (1, 1, 224, 224))
             flow_frame[index, 0,:,:] = torch.from_numpy(data)
@@ -557,12 +431,9 @@ class ava_dataset(data.Dataset):
 
             # Step 4 - Extract Flow Tube
             tube["of"] = self.extractFlow(path, tube["scene"], h,  w, bb)
-            # print(tube["joints"].shape)
-            # print(tube["joints"])
             np.save(path + "/joint/ehpi.npy", tube["joints"])
             im = Image.fromarray(tube["joints"], "RGB")
             im.save(path + "/joint/ehpi.jpg")
-            # imsave(path + "/joint/ehpi.jpg", im)
             
             # Visualize Tubes
             for frame in range(0, tube["scene"].shape[2]):
@@ -572,8 +443,6 @@ class ava_dataset(data.Dataset):
                 im = Image.fromarray(tube["rgb"][0,:,frame,:,:].permute(2, 1, 0).numpy(), "RGB")
                 im.save(path + "/rgb/test-"+ str(frame).zfill(7) + ".jpg")
 
-            # Step 5 - Extract EHPI
-            # func call
         except Exception as e:
             print("Exception!!!!", e)
             return "EXCEPT"

@@ -26,10 +26,10 @@ import argparse
 from tvnet1130_train_options import arguments
 
 def visualizeFlow(f):
-    flow = np.zeros((224, 224, 2))
+    flow = np.zeros((240, 320, 2))
     flow[:, :, 0] = f[0,:,:]# .cpu().numpy()
     flow[:, :, 1] = f[1,:,:]# .cpu().numpy()
-    hsv = np.zeros((224, 224, 3), dtype=np.uint8)
+    hsv = np.zeros((240, 320, 3), dtype=np.uint8)
 
     hsv[..., 1] = 255
     mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
@@ -79,7 +79,7 @@ of = tvnet(tvnet_args).cuda()
 
 of = loadTVNet(of, init_file)
 
-of = of.cpu()
+# of = of.cpu()
 
 
 class ava_dataset(data.Dataset):
@@ -308,7 +308,7 @@ class ava_dataset(data.Dataset):
                 x_arr.append(key[0])
                 y_arr.append(key[1])
             
-            label = "using joints for BB"
+            # label = "using joints for BB"
             buffer = 75
             xmin = int(min(x_arr)) - buffer 
             xmax = int(max(x_arr)) + buffer 
@@ -336,14 +336,14 @@ class ava_dataset(data.Dataset):
 
             # Visualize bounding boxes in scene...
             scene = cv2.rectangle(i, (xmin, ymin), (xmax, ymax), (255, 255, 0), 2)
-            scene = cv2.putText(i, "Person " + sample[7], (xmin + 10, ymin + 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
-            scene = cv2.putText(i, "Action " + sample[6], (xmin + 10, ymin + 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
-            scene = cv2.putText(i, label, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
+            scene = cv2.putText(scene, "Person " + sample[7], (xmin + 10, ymin + 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
+            scene = cv2.putText(scene, "Action " + sample[6], (xmin + 10, ymin + 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
+            # scene = cv2.putText(scene, label, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
 
             imsave(join(path + "/scene/", item), scene)
             bb.append(((xmin, ymin, xmax, ymax)))
             
-            original_image = np.transpose(i, (2, 0, 1)) # i;
+            original_image = np.transpose(i, (2, 0, 1))
             i = i[ymin:ymax,xmin:xmax,:]
             i = skimage.transform.resize(i, (224,224, 3))
             imsave(join(path + "/rgb/", item), i)
@@ -377,27 +377,30 @@ class ava_dataset(data.Dataset):
         return rgb_stream, scene_stream, ehpi, bb
 
     def extractFlow(self, path, tube, h, w, bb):
-        flow_frame = torch.zeros((64, 2, 224, 224))
+        flow_frame = torch.zeros((64, 2, 240, 320))
         path = path + "/flows/"
         os.mkdir(path)
+
+        print(tube.shape)
         for index in range(1, 64):
             data = skimage.transform.resize(tube[0,:,index - 1, :, :].cpu().numpy(), (3, 240, 320))
-            x1 = torch.from_numpy(data)
+            x1 = torch.from_numpy(data).cuda()
             data = skimage.transform.resize(tube[0,:,index, :, :].cpu().numpy(), (3, 240, 320))
-            x2 = torch.from_numpy(data)
-            u1, u2 = of(x2.unsqueeze(0), x1.unsqueeze(0), need_result=True)
+            x2 = torch.from_numpy(data).cuda()
+            print(x2.type())
+            u1, u2, _ = of(x2.unsqueeze(0), x1.unsqueeze(0), need_result=True)
 
             data = u1.detach()[0, 0, bb[index][1]:bb[index][3], bb[index][0]:bb[index][2]]
             data = skimage.transform.resize(data.cpu().numpy(), (1, 1, 224, 224))
-            flow_frame[index, 0,:,:] = torch.from_numpy(data)
+            flow_frame[index, 0,:,:] = u1 # torch.from_numpy(data)
 
             data = u2.detach()[0, 0, bb[index][1]:bb[index][3], bb[index][0]:bb[index][2]]
             data = skimage.transform.resize(data.cpu().numpy(), (1,1, 224, 224))
-            flow_frame[index, 1,:,:] = torch.from_numpy(data)
+            flow_frame[index, 1,:,:] = u2 # torch.from_numpy(data)
 
             im = visualizeFlow(flow_frame[index, :,:,:])
             print(im.shape)
-            imsave(path + str(index).zfill(7) + ".jpg", im)
+            imsave(path + str(index).zfill(7) + ".tiff", im)
 
         np.save(path + "flows.npy", flow_frame.numpy())
 
@@ -430,22 +433,33 @@ class ava_dataset(data.Dataset):
 
 
             # Step 4 - Extract Flow Tube
-            tube["of"] = self.extractFlow(path, tube["scene"], h,  w, bb)
+            #tube["of"] = self.extractFlow(path, tube["scene"], h,  w, bb)
             np.save(path + "/joint/ehpi.npy", tube["joints"])
-            im = Image.fromarray(tube["joints"], "RGB")
-            im.save(path + "/joint/ehpi.jpg")
-            
+            # im = tube["joints"].numpy()
+            imsave(path + "/joint/ehpi.tiff", tube["joints"])
+            # im = Image.fromarray(tube["joints"], "RGB")
+            # im.save(path + "/joint/ehpi.tiff")
+
+            # np.transpose(i, (2, 0, 1))
             # Visualize Tubes
             for frame in range(0, tube["scene"].shape[2]):
-                im = Image.fromarray(tube["scene"][0,:,frame,:,:].permute(2, 1, 0).numpy(), "RGB")
-                im.save(path + "/scene/test-"+ str(frame).zfill(7) + ".jpg")
+                # im = Image.fromarray(tube["scene"][0,:,frame,:,:].numpy(), "RGB")
+                im = np.transpose(tube["scene"][0,:,frame,:,:].numpy(), (1, 2, 0))
+                print(im.shape)
+                imsave(path + "/scene/test-"+ str(frame).zfill(7) + ".tiff", im)
+                # im = Image.fromarray(im, "RGB")
+                # im.save(path + "/scene/test-"+ str(frame).zfill(7) + ".jpg")
 
-                im = Image.fromarray(tube["rgb"][0,:,frame,:,:].permute(2, 1, 0).numpy(), "RGB")
-                im.save(path + "/rgb/test-"+ str(frame).zfill(7) + ".jpg")
+                # im = Image.fromarray(tube["rgb"][0,:,frame,:,:].numpy(), "RGB")
+                im = np.transpose(tube["rgb"][0,:,frame,:,:].numpy(), (1, 2, 0))
+                print(im.shape)
+                imsave(path + "/rgb/test-"+ str(frame).zfill(7) + ".tiff", im)
+                # im = Image.fromarray(im, "RGB")
+                # im.save(path + "/rgb/test-"+ str(frame).zfill(7) + ".jpg")
 
         except Exception as e:
             print("Exception!!!!", e)
             return "EXCEPT"
-
+        tube["of"] = self.extractFlow(path, tube["scene"], h,  w, bb)
         # step 6 - return tube
         return tube

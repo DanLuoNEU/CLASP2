@@ -25,6 +25,18 @@ import sys
 import argparse
 from tvnet1130_train_options import arguments
 
+import time
+
+'''
+import detectron2.detectron2.utils.comm as comm
+from detectron2.detectron2.checkpoint import DetectionCheckpointer
+from detectron2.detectron2.config import get_cfg
+from detectron2.detectron2.data import build_detection_test_loader, build_detection_train_loader
+from detectron2.detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, launch
+from detectron2.detectron2.evaluation import COCOEvaluator, DatasetEvaluators, verify_results
+from detectron2.detectron2.utils.logger import setup_logger
+'''
+
 def visualizeFlow(f):
     flow = np.zeros((240, 320, 2))
     flow[:, :, 0] = f[0,:,:]# .cpu().numpy()
@@ -68,6 +80,7 @@ def loadTVNet(model, tvnet_init):
         return model
 
 ########## TVNet for Optical Flow Extraction for I3D Flow Stream
+'''
 sys.path.insert(0, './model')
 from network import model as tvnet
 tvnet_args = arguments().parse() # tvnet parameters
@@ -80,7 +93,7 @@ of = tvnet(tvnet_args).cuda()
 of = loadTVNet(of, init_file)
 
 # of = of.cpu()
-
+'''
 
 class ava_dataset(data.Dataset):
     def __init__(self, folderList, frameDir, flowDir, jsonDir):
@@ -162,7 +175,8 @@ class ava_dataset(data.Dataset):
             os.mkdir(cropped_video_filename.split(".")[0] + "/joint/")
             command = "ffmpeg -i " + cropped_video_filename + " -vf \"select=not(mod(n\,1))\" -vsync vfr -q:v 2 "  + cropped_video_filename.split(".")[0] + "/scene/%07d.jpg"
             # print(command)
-
+            
+            
             try:
                 print("Splicing video: {}".format(video_name))
                 output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
@@ -170,19 +184,22 @@ class ava_dataset(data.Dataset):
                 print('status :: ', status, ', error print :: ', err.output.decode('euc-kr'))
                 return status, err.output
             
+            
+
             # Extract JOINT info
             # img_directory = cropped_video_filename.split(".")[0] + "/scene/" 
             # command = "cd ./AlphaPose/ && /home/truppr/anaconda3/envs/dyanEnv/bin/python demo.py --indir " + img_directory + " --outdir " + cropped_video_filename.split(".")[0] + "/joint/" + " --fast_inference False"
-            command = "cd ./AlphaPose/ && /home/truppr/anaconda3/envs/dyanEnv/bin/python video_demo.py --video " + cropped_video_filename + " --outdir " + cropped_video_filename.split(".")[0] + "/joint/" + " --save_video --vis_fast"
+            # command = "cd ./AlphaPose/ && /home/truppr/anaconda3/envs/dyanEnv/bin/python video_demo.py --video " + cropped_video_filename + " --outdir " + cropped_video_filename.split(".")[0] + "/joint/" + " --save_video --vis_fast"
+            command = "cd ./detectron2 && /home/truppr/anaconda3/envs/detectron2/bin/python demo/run.py --config-file configs/COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x.yaml --video-input /data/truppr/AVA/streams/-5KQ66BBWC4_0944_5_54.mkv --output " +  cropped_video_filename.split(".")[0] + "/joint/" + " --opts MODEL.WEIGHTS ~/model_final_997cc7.pkl"
             print(command)
-
+            now = time.time()
             try:
                 print("Capturing Pose INFO: {}".format(video_name))
                 output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as err:
                 print('status :: ', status, ', error print :: ', err.output.decode('euc-kr'))
                 return status, err.output
-
+            print(time.time() - now)
             with open(cropped_video_filename.split(".")[0] + "/joint/" + 'alphapose-results.json') as json_file:
                 data = json.load(json_file)
             
@@ -423,7 +440,7 @@ class ava_dataset(data.Dataset):
             path, joint_info, h, w = self.prepare(sample, self.frameDir, self.jsonDir)
             tube["scene"] = torch.zeros((1, 3, 64, h, w))    
 
-
+            '''
             # Step 3 - Extract Tube & Augment if necessary
             res = self.extractTube(path, sample, h, w, joint_info)
             if res == "ERR":
@@ -456,10 +473,10 @@ class ava_dataset(data.Dataset):
                 imsave(path + "/rgb/test-"+ str(frame).zfill(7) + ".tiff", im)
                 # im = Image.fromarray(im, "RGB")
                 # im.save(path + "/rgb/test-"+ str(frame).zfill(7) + ".jpg")
-
+            '''
         except Exception as e:
             print("Exception!!!!", e)
             return "EXCEPT"
-        tube["of"] = self.extractFlow(path, tube["scene"], h,  w, bb)
+        # tube["of"] = self.extractFlow(path, tube["scene"], h,  w, bb)
         # step 6 - return tube
         return tube

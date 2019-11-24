@@ -199,7 +199,7 @@ class ava_dataset(data.Dataset):
             except subprocess.CalledProcessError as err:
                 print('status :: ', status, ', error print :: ', err.output.decode('euc-kr'))
                 return status, err.output
-            print(time.time() - now)
+                        pass #print("BB Exception handled at frame: ", frame)
             with open(cropped_video_filename.split(".")[0] + "/joint/" + 'alphapose-results.json') as json_file:
                 data = json.load(json_file)
             

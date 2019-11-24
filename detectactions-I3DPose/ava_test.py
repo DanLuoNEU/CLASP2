@@ -10,7 +10,7 @@ import re
 import random
 from torchvision.transforms import ToTensor
 import csv
-from AVA_dataloader import ava_dataset
+from dataloader import ava_dataset
 import subprocess
 
 # Random Seed
@@ -21,9 +21,10 @@ np.random.seed(0)
 random.seed(0)
 
 mode = "trainval"
-rootDir = '/storage/truppr/AVA/ava-dataset-tool/'
-videoDir = rootDir + "video/" + mode
-frameDir = rootDir + "video/samples/" + mode
+# rootDir = '/storage/truppr/AVA/ava-dataset-tool/'
+rootDir = '/data/truppr/AVA/'
+videoDir = rootDir + "videos/" 
+# frameDir = rootDir + "video/samples/" + mode
 jsonDir = rootDir + "streams/"
 flowDir = rootDir + "flows/"
 # ava_training_set = "ava_dataset_files/ava_train_v2.1.csv"

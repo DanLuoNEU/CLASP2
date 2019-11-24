@@ -28,7 +28,7 @@ videoDir = rootDir + "videos/"
 jsonDir = rootDir + "streams/"
 flowDir = rootDir + "flows/"
 # ava_training_set = "ava_dataset_files/ava_train_v2.1.csv"
-ava_training_set = "ava_dataset_files/ava_train_truppr_v9.9.csv"
+ava_training_set = "ava_dataset_files/ava_train_truppr_v2class-third-1.csv"
 
 data = ava_dataset(ava_training_set, videoDir, flowDir, jsonDir)
 

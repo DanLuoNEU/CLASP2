@@ -29,6 +29,12 @@ import ast
 import time
 import pickle
 
+def actions(act):
+    if act == "46":
+        return "push"
+    elif act == "36":
+        return "pick up"
+
 def visualizeFlow(f):
     flow = np.zeros((240, 320, 2))
     flow[:, :, 0] = f[0,:,:]# .cpu().numpy()
@@ -109,18 +115,18 @@ class ava_dataset(data.Dataset):
 
         status = False
         if not os.path.isfile(origin_video_filename):
-            print('Video does not exist: {0}'.format(video_name))
+            pass # print('Video does not exist: {0}'.format(video_name))
         elif os.path.isfile(cropped_video_filename):
-            print('Already exist cropped video: {0}'.format(video_name))
+            pass # print('Already exist cropped video: {0}'.format(video_name))
         else:
             command = ['ffmpeg','-i','"%s"' % origin_video_filename, '-ss', str(start_time), '-t', str(end_time - start_time), '-c:v', 'libx264', '-c:a', 'ac3','-threads', '1','-loglevel', 'panic','"{}"'.format(cropped_video_filename)]
             command = ' '.join(command)
 
             try:
-                print("Processing video: {}".format(video_name))
+                # print("Processing video: {}".format(video_name))
                 output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as err:
-                print('status :: ', status, ', error print :: ', err.output.decode('euc-kr'))
+                # print('status :: ', status, ', error print :: ', err.output.decode('euc-kr'))
                 return status, err.output
             
             os.mkdir(cropped_video_filename.split(".")[0])
@@ -133,20 +139,20 @@ class ava_dataset(data.Dataset):
             
             
             try:
-                print("Splicing video: {}".format(video_name))
+                # print("Splicing video: {}".format(video_name))
                 output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as err:
-                print('status :: ', status, ', error print :: ', err.output.decode('euc-kr'))
+                # print('status :: ', status, ', error print :: ', err.output.decode('euc-kr'))
                 return status, err.output
 
             command = "cd ./detectron2 && /home/truppr/anaconda3/envs/detectron2/bin/python demo/run.py --config-file configs/COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x.yaml --video-input " + str(cropped_video_filename) + " --output " +  cropped_video_filename.split(".")[0] + "/joints/" + " --opts MODEL.WEIGHTS ~/model_final_997cc7.pkl"
-            print(command)
+            # print(command)
             
             try:
-                print("Capturing Pose INFO: {}".format(video_name))
+                # print("Capturing Pose INFO: {}".format(video_name))
                 output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as err:
-                print('status :: ', status, ', error print :: ', err.output.decode('euc-kr'))
+                # print('status :: ', status, ', error print :: ', err.output.decode('euc-kr'))
                 return status, err.outputs
 
             path = cropped_video_filename.split(".")[0]
@@ -282,33 +288,7 @@ class ava_dataset(data.Dataset):
             flow_frame[0, :, index, :, :] = torch.from_numpy(np.resize(f[:,bb[entry][0]:bb[entry][2], bb[entry][1]:bb[entry][3]], (2, 224,224)))
 
             index = index + 1
-        '''
-        print("flow: ", flow_frame.shape)
-        input()
 
-        print(tube.shape)
-        for index in range(1, 64):
-            data = skimage.transform.resize(tube[0,:,index - 1, :, :].cpu().numpy(), (3, 240, 320))
-            x1 = torch.from_numpy(data).cuda()
-            data = skimage.transform.resize(tube[0,:,index, :, :].cpu().numpy(), (3, 240, 320))
-            x2 = torch.from_numpy(data).cuda()
-            print(x2.type())
-            u1, u2, _ = of(x2.unsqueeze(0), x1.unsqueeze(0), need_result=True)
-
-            data = u1.detach()[0, 0, bb[index][1]:bb[index][3], bb[index][0]:bb[index][2]]
-            data = skimage.transform.resize(data.cpu().numpy(), (1, 1, 224, 224))
-            flow_frame[index, 0,:,:] = u1 # torch.from_numpy(data)
-
-            data = u2.detach()[0, 0, bb[index][1]:bb[index][3], bb[index][0]:bb[index][2]]
-            data = skimage.transform.resize(data.cpu().numpy(), (1,1, 224, 224))
-            flow_frame[index, 1,:,:] = u2 # torch.from_numpy(data)
-
-            im = visualizeFlow(flow_frame[index, :,:,:])
-            print(im.shape)
-            imsave(path + str(index).zfill(7) + ".tiff", im)
-
-        # np.save(path + "flows.npy", flow_frame.numpy())
-        '''
         return flow_frame
 
 
@@ -332,11 +312,13 @@ class ava_dataset(data.Dataset):
         return rgb_frame
 
     def __len__(self):
-        return len(self.folderList)
+        with open(self.folderList, 'r') as file:
+            sample = list(csv.reader(file))
+        return len(sample)
 
 
     def __getitem__(self, index):
-        tube = {'rgb' : torch.zeros((1, 3, 64, 224, 224)), 'of': torch.zeros((1, 2, 64, 224, 224)), 'joints' : torch.zeros((17,64,3))}
+        tube = {'rgb' : torch.zeros((1, 3, 64, 224, 224)), 'of': torch.zeros((1, 2, 64, 224, 224)), 'joints' : torch.zeros((17,64,3)), "action" : -1}
 
         # Step 1 - iterate over training list
         with open(self.folderList, 'r') as file:
@@ -344,12 +326,12 @@ class ava_dataset(data.Dataset):
         
         # try:
         # Step 2 - check if preprocessed data for sample exists
-        now = time.time()
+        # now = time.time()
         try:
             path, flow_data, joint_data, h, w = self.prepare(sample, self.frameDir, self.jsonDir)
         except:
             return tube
-        print(time.time() - now)
+        # print(time.time() - now)
 
         length = len(flow_data.keys())
         startIndex = random.randint(0,length - 64)
@@ -361,27 +343,9 @@ class ava_dataset(data.Dataset):
         tube["joints"] = torch.from_numpy(joint_data[:, startIndex:startIndex + 64, :])
         tube["rgb"] = rgb[:, :, startIndex:startIndex + 64, :, :]
         tube["of"] = flow[:, :, startIndex:startIndex + 64, :, :]
-
-        # Step 3 - Extract Tube & Augment if necessary
-        '''
-        res = self.extractTube(path, sample, h, w, joint_info)
-        if res == "ERR":
-            return "ERR"
-
-        tube["rgb"], tube["scene"], tube["joints"], bb = res[0], res[1], res[2], res[3]
-        '''
+        tube["action"] = actions(sample[6])
 
         '''
-
-        # Step 4 - Extract Flow Tube
-        #tube["of"] = self.extractFlow(path, tube["scene"], h,  w, bb)
-        np.save(path + "/joint/ehpi.npy", tube["joints"])
-        # im = tube["joints"].numpy()
-        imsave(path + "/joint/ehpi.tiff", tube["joints"])
-        # im = Image.fromarray(tube["joints"], "RGB")
-        # im.save(path + "/joint/ehpi.tiff")
-
-        # np.transpose(i, (2, 0, 1))
         # Visualize Tubes
         for frame in range(0, tube["scene"].shape[2]):
             # im = Image.fromarray(tube["scene"][0,:,frame,:,:].numpy(), "RGB")

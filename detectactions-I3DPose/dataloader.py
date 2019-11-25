@@ -20,12 +20,14 @@ import cv2
 import shlex
 import json
 from skimage.io import imread, imsave
+from skimage.transform import resize
 import random
 import sys
 import argparse
 from tvnet1130_train_options import arguments
 import ast
 import time
+import pickle
 
 def visualizeFlow(f):
     flow = np.zeros((240, 320, 2))
@@ -137,7 +139,6 @@ class ava_dataset(data.Dataset):
                 print('status :: ', status, ', error print :: ', err.output.decode('euc-kr'))
                 return status, err.output
 
-            # print(cropped_video_filename)
             command = "cd ./detectron2 && /home/truppr/anaconda3/envs/detectron2/bin/python demo/run.py --config-file configs/COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x.yaml --video-input " + str(cropped_video_filename) + " --output " +  cropped_video_filename.split(".")[0] + "/joints/" + " --opts MODEL.WEIGHTS ~/model_final_997cc7.pkl"
             print(command)
             
@@ -186,8 +187,8 @@ class ava_dataset(data.Dataset):
                     
                     original_image = np.transpose(i, (2, 0, 1))
                     i = i[ymin:ymax,xmin:xmax,:]
-                    i = skimage.transform.resize(i, (224,224, 3))
-
+                    # i = skimage.transform.resize(i, (224,224, 3))
+                    i = resize(i, (224,224, 3))
                     
                     imsave(path + "/rgb/" + filename, i)
 
@@ -260,11 +261,30 @@ class ava_dataset(data.Dataset):
 
         return cropped_video_filename.split(".")[0], flow_data, joint_data, height, width
 
-    ''' not needed...
     def extractFlow(self, path, tube, h, w, bb):
-        flow_frame = torch.zeros((64, 2, 240, 320))
-        path = path + "/flows/"
-        os.mkdir(path)
+        flow_frame = torch.zeros((1, 2, len(bb.keys()), 224, 224)) # (1, 2, 64, 224, 224)
+
+        index = 0;
+        for entry in sorted(bb.keys()):
+            frame = str(int(entry.split("/")[-1].replace(".jpg", ""))) + ".pkl"
+            # print(path + "/flow/", frame)
+
+            try:
+                with open(path + "/flow/" + frame, 'rb') as f:
+                    data = pickle.load(f)
+            except FileNotFoundError:
+                if index != 0:
+                    flow_frame[0, :, index, :, :] = flow_frame[0, :, index - 1, :, :]
+                continue
+
+            f = np.zeros((data.shape[0], data.shape[1], data.shape[2]))
+            f = data
+            flow_frame[0, :, index, :, :] = torch.from_numpy(np.resize(f[:,bb[entry][0]:bb[entry][2], bb[entry][1]:bb[entry][3]], (2, 224,224)))
+
+            index = index + 1
+        '''
+        print("flow: ", flow_frame.shape)
+        input()
 
         print(tube.shape)
         for index in range(1, 64):
@@ -287,17 +307,36 @@ class ava_dataset(data.Dataset):
             print(im.shape)
             imsave(path + str(index).zfill(7) + ".tiff", im)
 
-        np.save(path + "flows.npy", flow_frame.numpy())
-
+        # np.save(path + "flows.npy", flow_frame.numpy())
+        '''
         return flow_frame
-    '''
+
+
+    def extractRGB(self, path, tube, h, w, flow_data):
+        rgb_frame = torch.zeros((1, 3, len(flow_data.keys()), 224, 224))
+
+        index = 0
+        for filename in sorted(os.listdir(path + "/rgb/")):
+            try:
+                i = imread(path + "/rgb/" + filename)
+            except FileNotFoundError:
+                if index != 0:
+                    rgb_frame[:, :, index, :, :] = rgb_frame[:, :, index - 1, :, :]
+                continue
+
+            i = np.transpose(i, (2, 0, 1))
+            i = resize(i, (3, 224, 224))
+            rgb_frame[:, :, index, :, :] = torch.from_numpy(i)
+            index = index + 1
+
+        return rgb_frame
 
     def __len__(self):
         return len(self.folderList)
 
 
     def __getitem__(self, index):
-        tube = {'rgb' : torch.zeros((1, 3, 64, 224, 224)), 'of': torch.zeros((1, 2, 64, 224, 224)), 'joints' : np.zeros((17,64,3))}
+        tube = {'rgb' : torch.zeros((1, 3, 64, 224, 224)), 'of': torch.zeros((1, 2, 64, 224, 224)), 'joints' : torch.zeros((17,64,3))}
 
         # Step 1 - iterate over training list
         with open(self.folderList, 'r') as file:
@@ -306,13 +345,23 @@ class ava_dataset(data.Dataset):
         # try:
         # Step 2 - check if preprocessed data for sample exists
         now = time.time()
-        path, flow_data, joint_data, h, w = self.prepare(sample, self.frameDir, self.jsonDir)
+        try:
+            path, flow_data, joint_data, h, w = self.prepare(sample, self.frameDir, self.jsonDir)
+        except:
+            return tube
         print(time.time() - now)
-        # tube["scene"] = torch.zeros((1, 3, 64, h, w))    
+
+        length = len(flow_data.keys())
+        startIndex = random.randint(0,length - 64)
+
         
-        
-        tube["joints"] = joint_data
-        
+        flow = self.extractFlow(path, tube, h, w, flow_data)
+        rgb = self.extractRGB(path, tube, h, w, flow_data)
+
+        tube["joints"] = torch.from_numpy(joint_data[:, startIndex:startIndex + 64, :])
+        tube["rgb"] = rgb[:, :, startIndex:startIndex + 64, :, :]
+        tube["of"] = flow[:, :, startIndex:startIndex + 64, :, :]
+
         # Step 3 - Extract Tube & Augment if necessary
         '''
         res = self.extractTube(path, sample, h, w, joint_info)

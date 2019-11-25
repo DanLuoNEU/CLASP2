@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class EHPI_Classifier(nn.Module):
-    def __init__(self, num_classes, gpu_id ):
-        super(EHPI_Classifier,self).__init__()
+class EHPIClassifier(nn.Module):
+    def __init__(self, num_classes):
+        super(EHPIClassifier,self).__init__()
         self.num_classes = num_classes;
 
         self.conv1 = nn.Conv2d(, , kernel_size=(3,3), stride=1, padding=1, bias=False)

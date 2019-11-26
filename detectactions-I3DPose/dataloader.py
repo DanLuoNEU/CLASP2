@@ -155,6 +155,13 @@ class ava_dataset(data.Dataset):
                 # print('status :: ', status, ', error print :: ', err.output.decode('euc-kr'))
                 return status, err.outputs
 
+            command = "cd ./OF && /home/truppr/anaconda3/envs/py36pt110/bin/python main.py --optical_weights flownet2-pytorch/models/FlowNet2_checkpoint.pth.tar --image_dir " + cropped_video_filename.split(".")[0] + "/scene/" + " --save_dir " + cropped_video_filename.split(".")[0] + "/flow/"
+            print(command)
+            try:
+                output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as err:
+                return status, err.outputs
+
             path = cropped_video_filename.split(".")[0]
             flow_data = {}
             joint_data = np.zeros((len(os.listdir(path + "/scene/")), 17, 3))

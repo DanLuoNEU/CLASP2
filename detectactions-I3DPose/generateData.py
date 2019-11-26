@@ -29,7 +29,7 @@ import json
 import videotransforms
 from pytorch_i3d import InceptionI3d
 
-from ehpiClassifier import EHPIClassifier
+# from ehpiClassifier import EHPIClassifier
 
 import time
 
@@ -54,12 +54,11 @@ videoDir = rootDir + "videos/"
 jsonDir = rootDir + "streams/"
 flowDir = rootDir + "flows/"
 # ava_training_set = "ava_dataset_files/ava_train_v2.1.csv"
-ava_training_set = "ava_dataset_files/ava_train_truppr_v2class.csv"
+ava_training_set = "ava_dataset_files/ava_train_truppr_v7classes-half1.csv"
 
 train_data = ava_dataset(ava_training_set, videoDir, flowDir, jsonDir)
 
 for tube in train_data:
     if tube["action"] == -1:
         print("Skipping tube because of some problem...")
-        error = error + 1
         continue

@@ -1,1 +1,0 @@
-ffmpeg -r 30 -f image2 -start_number 6767 -i cam09exp2_hands_person_association/%d.jpg -vcodec libx264 -crf 25  -pix_fmt yuv420p cam09exp2_hpa.mp4

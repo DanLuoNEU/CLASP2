@@ -19,7 +19,9 @@ bin-release/
 *.mp4
 *.avi
 *.pdf
+*.json
 *.DS_Store
+*.association.py.swp
 *.~
 
 # Folders with no change
@@ -28,6 +30,8 @@ GroundTruth/
 Labeling\ Tool/
 PoseEstimation/
 Visualization/data/
+Person-bin\ Detection/faster_rcnn_pytorch
+*/.vscode/
 
 # data files
 *.csv

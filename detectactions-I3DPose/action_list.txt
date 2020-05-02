@@ -1,0 +1,157 @@
+1 holding clothes
+1 putting clothes somewhere
+1 taking clothes from somewhere
+1 throwing clothes somewhere
+0 tidying clothes
+0 washing clothes
+0 closing door
+0 fixing door
+0 opening door
+1 putting something on a table
+0 sitting on table
+0 sitting at table
+0 tidying up table
+0 washing a table
+0 working at a table
+1 holding phone/camera
+1 playing with phone/camera
+1 putting phone/camera somewhere
+1 taking phone/camera from somewhere
+1 talking on a phone/camera
+1 holding bag
+1 opening bag
+1 putting bag somewhere
+1 taking bag from somewhere
+1 throwing bag somewhere
+0 closing book
+0 holding book
+0 opening book
+1 putting book somewhere
+0 smiling at book
+1 taking book from somewhere
+1 throwing book somewhere
+1 reading/Looking at a book
+0 holding towel/s
+0 putting towel/s somewhere
+0 taking towel/s from somewhere
+0 throwing towel/s somewhere
+0 tidying towel/s
+0 washing something with a towel
+1 closing box
+1 holding box
+1 opening box
+1 putting box somewhere
+1 taking box from somewhere
+1 taking something from box
+1 throwing box somewhere
+0 closing laptop
+1 holding laptop
+0 opening laptop
+1 putting laptop somewhere
+1 taking laptop from somewhere
+0 watching something on laptop
+0 working/Playing on laptop
+1 holding shoe/shoes
+1 putting shoes somewhere
+1 putting on shoe/shoes
+1 taking shoes from somewhere
+1 taking off some shoes
+1 throwing shoes
+1 sitting in chair
+0 standing on chair
+0 holding food
+0 putting food somewhere
+0 taking food from somewhere
+0 throwing food
+0 eating sandwich
+0 making sandwich
+0 holding sandwich
+0 putting sandwich somewhere
+0 taking sandwich from somewhere
+1 holding blanket
+1 putting blanket somewhere
+0 snuggling blanket
+1 taking blanket from somewhere
+1 throwing blanket somewhere
+0 tidying up a blanket/s
+1 holding pillow
+1 putting pillow somewhere
+0 snuggling with pillow
+1 taking pillow from somewhere
+1 throwing pillow somewhere
+0 putting something on shelf
+0 tidying shelf or something on shelf
+0 reaching for and grabbing a picture
+0 holding picture
+0 laughing at picture
+0 putting picture somewhere
+0 taking picture of something
+0 watching/looking at picture
+0 closing window
+0 opening window
+0 washing window
+0 watching/Looking outside window
+0 holding mirror
+0 smiling in mirror
+0 washing mirror
+0 watching something in mirror
+1 walking through doorway
+0 holding broom
+0 putting broom somewhere
+0 taking broom from somewhere
+0 throwing broom
+0 tidying up with broom
+0 fixing a light
+0 turning on a light
+0 turning off a light
+0 drinking from a cup/glass/bottle
+0 holding a cup/glass/bottle
+0 pouring into cup/glass/bottle
+0 putting cup/glass/bottle somewhere
+0 taking cup/glass/bottle from somewhere
+0 washing cup/glass/bottle
+0 closing closet/cabinet
+0 opening closet/cabinet
+0 tidying up a closet/cabinet
+1 someone holding paper/notebook
+1 putting paper/notebook somewhere
+1 taking paper/notebook from somewhere
+0 holding dish
+0 putting dish/es somewhere
+0 taking dish/es from somewhere
+0 wash dish/dishes
+0 lying sofa/couch
+0 sitting sofa/couch
+1 lying floor
+1 sitting floor
+1 throwing something on floor
+0 tidying something on floor
+0 holding some medicine
+0 taking/consuming some medicine
+0 putting groceries somewhere
+0 laughing at television
+0 watching television
+0 awakening in bed
+0 lying bed
+0 sitting bed
+0 fixing a vacuum
+0 holding a vacuum
+0 taking a vacuum from somewhere
+0 washing their hands
+0 fixing doorknob
+0 grasping onto doorknob
+0 closing refrigerator
+0 opening refrigerator
+1 fixing hair
+1 working on paper/notebook
+0 awakening somewhere
+0 cooking
+1 dressing themselves
+1 laughing
+1 running
+1 sitting down
+1 smiling
+0 sneezing
+1 standing up
+1 undressing
+0 eating

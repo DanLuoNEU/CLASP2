@@ -1,0 +1,1 @@
+ffmpeg -r 30 -f image2 -start_number 0 -i viz/association_cam13exp2/%d.jpg -vcodec libx264 -crf 25  -pix_fmt yuv420p viz/association_cam13exp2_102419.mp4
